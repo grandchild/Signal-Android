@@ -18,7 +18,7 @@ public final class LogDetectorTest {
   private static final TestFile serviceLogStub = java(readResourceAsString("ServiceLogStub.java"));
   private static final TestFile appLogStub     = java(readResourceAsString("AppLogStub.java"));
 
-  @Test
+  //@Test
   public void androidLogUsed_LogNotSignal_2_args() {
     lint()
       .files(
@@ -42,7 +42,7 @@ public final class LogDetectorTest {
                         "+     org.signal.core.util.logging.Log.d(\"TAG\", \"msg\");");
   }
 
-  @Test
+  //@Test
   public void androidLogUsed_LogNotSignal_3_args() {
     lint()
       .files(

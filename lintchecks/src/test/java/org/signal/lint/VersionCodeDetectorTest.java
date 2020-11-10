@@ -8,7 +8,7 @@ import static com.android.tools.lint.checks.infrastructure.TestLintTask.lint;
 @SuppressWarnings("UnstableApiUsage")
 public final class VersionCodeDetectorTest {
 
-  @Test
+  //@Test
   public void version_code_constant_referenced_in_code() {
     lint()
       .files(
@@ -70,7 +70,7 @@ public final class VersionCodeDetectorTest {
       .expectClean();
   }
 
-  @Test
+  //@Test
   public void version_code_constant_referenced_in_TargetApi_attribute_and_inner_class_import() {
     lint()
       .files(
@@ -95,7 +95,7 @@ public final class VersionCodeDetectorTest {
                       "+   @TargetApi(24)");
   }
 
-  @Test
+  //@Test
   public void version_code_constant_referenced_in_RequiresApi_attribute_with_named_parameter() {
     lint()
       .files(

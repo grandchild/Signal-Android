@@ -7,46 +7,114 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.os.StatFs;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
+
+import com.annimon.stream.Stream;
 
 import org.thoughtcrime.securesms.BuildConfig;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.database.NoExternalStorageException;
 import org.thoughtcrime.securesms.dependencies.ApplicationDependencies;
+import org.thoughtcrime.securesms.logging.Log;
+import org.thoughtcrime.securesms.keyvalue.SignalStore;
 import org.thoughtcrime.securesms.permissions.Permissions;
+import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Scanner;
 
 public class StorageUtil {
 
+  private static final String TAG = StorageUtil.class.getSimpleName();
+
   private static final String PRODUCTION_PACKAGE_ID = "org.thoughtcrime.securesms";
 
-  public static File getOrCreateBackupDirectory() throws NoExternalStorageException {
-    File storage = Environment.getExternalStorageDirectory();
-
-    if (!storage.canWrite()) {
-      throw new NoExternalStorageException();
-    }
-
-    File backups = getBackupDirectory();
+  public static File getOrCreateBackupDirectory(@NonNull Context context) throws NoExternalStorageException {
+    File backups = getBackupDirectory(context);
 
     if (!backups.exists()) {
       if (!backups.mkdirs()) {
-        throw new NoExternalStorageException("Unable to create backup directory...");
+        throw new NoExternalStorageException("Unable to create backup directory: " + backups);
+      }
+      if (!backups.canWrite()) {
+        throw new NoExternalStorageException("Unable to write to backup directory: " + backups);
       }
     }
 
     return backups;
   }
 
-  public static File getBackupDirectory() throws NoExternalStorageException {
-    File storage = Environment.getExternalStorageDirectory();
+  private static @Nullable File getSDCardOrExternalDirectory(@NonNull Context context) {
+    File sdStorage = null;
+
+    if (Build.VERSION.SDK_INT >= 19) {
+      File[] sdCardDirectories = getSDCardDirectories(context);
+
+      if (sdCardDirectories != null) {
+        sdStorage = getNonEmulated(sdCardDirectories);
+        if(sdStorage != null) {
+          Log.d(TAG, "sdcard storage detected: " + sdStorage.getAbsolutePath());
+        }
+      }
+    }
+
+    File externalStorage = Environment.getExternalStorageDirectory();
+
+    if(sdStorage == null) {
+      return externalStorage;
+    }
+
+    StatFs statExternal = new StatFs(externalStorage.getAbsolutePath());
+    StatFs statSDCard = new StatFs(sdStorage.getAbsolutePath());
+    Log.d(TAG, "ext MiB free: " + statExternal.getAvailableBytes() / 1024 / 1024);
+    Log.d(TAG, "sd MiB free: " + statSDCard.getAvailableBytes() / 1024 / 1024);
+    if(statExternal.getAvailableBytes() < statSDCard.getAvailableBytes()) {
+      Log.i(TAG, "selecting SDCard for backups");
+      return sdStorage;
+    }
+    Log.i(TAG, "selecting external storage for backups");
+    return externalStorage;
+  }
+
+  public static @Nullable File[] getSDCardDirectories(@NonNull Context context) {
+    File[] dirs = ContextCompat.getExternalFilesDirs(context, null);
+    for(File dir : dirs) {
+      Log.d(TAG, dir.getAbsolutePath());
+    }
+    ArrayList<File> paths = new ArrayList<>();
+    try {
+      Scanner scanner = new Scanner(new File("/proc/mounts"));
+      while (scanner.hasNext()) {
+        String line = scanner.nextLine();
+        if (line.contains(" /storage/")) {
+          String[] lineElements = line.split(" ");
+          String mountPoint = lineElements[1];
+
+          if (mountPoint.startsWith("/storage/emulated")) {
+            continue;
+          }
+
+          paths.add(new File(mountPoint + "/Android/data/" + BuildConfig.APPLICATION_ID + "/files/"));
+        }
+      }
+    } catch(FileNotFoundException fnfe) {
+      return null;
+    }
+    return paths.toArray(new File[0]);
+  }
+
+  public static File getBackupDirectory(@NonNull Context context) throws NoExternalStorageException {
+    File storage = getSDCardOrExternalDirectory(context);
     File signal  = new File(storage, "Signal");
     File backups = new File(signal, "Backups");
 
@@ -83,7 +151,25 @@ public class StorageUtil {
   }
 
   public static File getBackupCacheDirectory(Context context) {
+    if (Build.VERSION.SDK_INT >= 19) {
+      File[] directories = context.getExternalCacheDirs();
+
+      if (directories != null) {
+        File result = getNonEmulated(directories);
+        if (result != null) return result;
+      }
+    }
+
     return context.getExternalCacheDir();
+  }
+
+  private static @Nullable File getNonEmulated(File[] directories) {
+    return Stream.of(directories)
+                 .withoutNulls()
+                 .filterNot(f -> f.getAbsolutePath().contains("emulated"))
+                 .limit(1)
+                 .findSingle()
+                 .orElse(null);
   }
 
   private static File getSignalStorageDir() throws NoExternalStorageException {

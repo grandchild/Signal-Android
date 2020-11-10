@@ -93,7 +93,7 @@ public final class LocalBackupJob extends BaseJob {
       notification.setIndeterminateProgress();
 
       String backupPassword  = BackupPassphrase.get(context);
-      File   backupDirectory = StorageUtil.getOrCreateBackupDirectory();
+      File   backupDirectory = StorageUtil.getOrCreateBackupDirectory(context);
       String timestamp       = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US).format(new Date());
       String fileName        = String.format("signal-%s.backup", timestamp);
       File   backupFile      = new File(backupDirectory, fileName);
@@ -134,7 +134,7 @@ public final class LocalBackupJob extends BaseJob {
         }
       }
 
-      BackupUtil.deleteOldBackups();
+      BackupUtil.deleteOldBackups(context);
     }
   }
 

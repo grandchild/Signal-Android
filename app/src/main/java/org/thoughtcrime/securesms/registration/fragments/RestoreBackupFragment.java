@@ -149,7 +149,7 @@ public final class RestoreBackupFragment extends BaseRegistrationFragment {
 
   @SuppressLint("StaticFieldLeak")
   private void initializeBackupDetection(@NonNull View view) {
-    searchForBackup(backup -> handleBackupInfo(view, backup));
+    searchForBackup(getContext(), backup -> handleBackupInfo(view, backup));
   }
 
   private void handleBackupInfo(@NonNull View view, @Nullable BackupUtil.BackupInfo backup) {
@@ -177,13 +177,13 @@ public final class RestoreBackupFragment extends BaseRegistrationFragment {
     void run(@Nullable BackupUtil.BackupInfo backup);
   }
 
-  static void searchForBackup(@NonNull OnBackupSearchResultListener listener) {
+  static void searchForBackup(@NonNull Context context, @NonNull OnBackupSearchResultListener listener) {
     new AsyncTask<Void, Void, BackupUtil.BackupInfo>() {
       @Override
       protected @Nullable
       BackupUtil.BackupInfo doInBackground(Void... voids) {
         try {
-          return BackupUtil.getLatestBackup();
+          return BackupUtil.getLatestBackup(context);
         } catch (NoExternalStorageException e) {
           Log.w(TAG, e);
           return null;

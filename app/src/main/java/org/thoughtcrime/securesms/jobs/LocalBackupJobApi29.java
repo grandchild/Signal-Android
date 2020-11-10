@@ -130,7 +130,7 @@ public final class LocalBackupJobApi29 extends BaseJob {
         }
       }
 
-      BackupUtil.deleteOldBackups();
+      BackupUtil.deleteOldBackups(context);
     }
   }
 

@@ -39,7 +39,7 @@ public class BackupUtil {
 
   public static @NonNull String getLastBackupTime(@NonNull Context context, @NonNull Locale locale) {
     try {
-      BackupInfo backup = getLatestBackup();
+      BackupInfo backup = getLatestBackup(context);
 
       if (backup == null) return context.getString(R.string.BackupUtil_never);
       else                return DateUtils.getExtendedRelativeTimeSpanString(context, locale, backup.getTimestamp());
@@ -67,17 +67,17 @@ public class BackupUtil {
     }
   }
 
-  public static @Nullable BackupInfo getLatestBackup() throws NoExternalStorageException {
-    List<BackupInfo> backups = getAllBackupsNewestFirst();
+  public static @Nullable BackupInfo getLatestBackup(@NonNull Context context) throws NoExternalStorageException {
+    List<BackupInfo> backups = getAllBackupsNewestFirst(context);
 
     return backups.isEmpty() ? null : backups.get(0);
   }
 
-  public static void deleteAllBackups() {
+  public static void deleteAllBackups(@NonNull Context context) {
     Log.i(TAG, "Deleting all backups");
 
     try {
-      List<BackupInfo> backups = getAllBackupsNewestFirst();
+      List<BackupInfo> backups = getAllBackupsNewestFirst(context);
 
       for (BackupInfo backup : backups) {
         backup.delete();
@@ -87,11 +87,11 @@ public class BackupUtil {
     }
   }
 
-  public static void deleteOldBackups() {
+  public static void deleteOldBackups(@NonNull Context context) {
     Log.i(TAG, "Deleting older backups");
 
     try {
-      List<BackupInfo> backups = getAllBackupsNewestFirst();
+      List<BackupInfo> backups = getAllBackupsNewestFirst(context);
 
       for (int i = 2; i < backups.size(); i++) {
         backups.get(i).delete();
@@ -104,7 +104,7 @@ public class BackupUtil {
   public static void disableBackups(@NonNull Context context) {
     BackupPassphrase.set(context, null);
     TextSecurePreferences.setBackupEnabled(context, false);
-    BackupUtil.deleteAllBackups();
+    BackupUtil.deleteAllBackups(context);
 
     if (BackupUtil.isUserSelectionRequired(context)) {
       Uri backupLocationUri = SignalStore.settings().getSignalBackupDirectory();
@@ -126,11 +126,11 @@ public class BackupUtil {
     }
   }
 
-  private static List<BackupInfo> getAllBackupsNewestFirst() throws NoExternalStorageException {
+  private static List<BackupInfo> getAllBackupsNewestFirst(@NonNull Context context) throws NoExternalStorageException {
     if (isUserSelectionRequired(ApplicationDependencies.getApplication())) {
       return getAllBackupsNewestFirstApi29();
     } else {
-      return getAllBackupsNewestFirstLegacy();
+      return getAllBackupsNewestFirstLegacy(context);
     }
   }
 
@@ -179,8 +179,8 @@ public class BackupUtil {
     }
   }
 
-  private static List<BackupInfo> getAllBackupsNewestFirstLegacy() throws NoExternalStorageException {
-    File             backupDirectory = StorageUtil.getOrCreateBackupDirectory();
+  private static List<BackupInfo> getAllBackupsNewestFirstLegacy(@NonNull Context context) throws NoExternalStorageException {
+    File             backupDirectory = StorageUtil.getOrCreateBackupDirectory(context);
     File[]           files           = backupDirectory.listFiles();
     List<BackupInfo> backups         = new ArrayList<>(files.length);
 
@@ -215,7 +215,7 @@ public class BackupUtil {
   public static boolean hasBackupFiles(@NonNull Context context) {
     if (Permissions.hasAll(context, Manifest.permission.READ_EXTERNAL_STORAGE)) {
       try {
-        File directory = StorageUtil.getBackupDirectory();
+        File directory = StorageUtil.getBackupDirectory(context);
 
         if (directory.exists() && directory.isDirectory()) {
           File[] files = directory.listFiles();

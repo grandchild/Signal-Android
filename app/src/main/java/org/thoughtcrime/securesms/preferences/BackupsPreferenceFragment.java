@@ -164,7 +164,7 @@ public class BackupsPreferenceFragment extends Fragment {
       } else if (StorageUtil.canWriteInSignalStorageDir()) {
         try {
           folder.setVisibility(View.VISIBLE);
-          folderName.setText(StorageUtil.getOrCreateBackupDirectory().getPath());
+          folderName.setText(StorageUtil.getOrCreateBackupDirectory(getContext()).getPath());
         } catch (NoExternalStorageException e) {
           Log.w(TAG, "Could not display folder name.", e);
         }

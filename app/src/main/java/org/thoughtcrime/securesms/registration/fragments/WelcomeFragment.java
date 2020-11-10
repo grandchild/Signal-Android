@@ -150,7 +150,7 @@ public final class WelcomeFragment extends BaseRegistrationFragment {
   private void gatherInformationAndContinue(@NonNull View view) {
     setSpinning(continueButton);
 
-    RestoreBackupFragment.searchForBackup(backup -> {
+    RestoreBackupFragment.searchForBackup(getContext(), backup -> {
       Context context = getContext();
       if (context == null) {
         Log.i(TAG, "No context on fragment, must have navigated away.");
